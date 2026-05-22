@@ -1,11 +1,11 @@
+import logging
 from typing import AsyncGenerator
-
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
-from core.config import settings
-from db.base import Base
+from src.core.config import settings
+from src.db.base import Base
 
-from db.models import Pokemon
+logger = logging.getLogger(__name__)
 
 engine = create_async_engine(
     settings.DATABASE_URL,
@@ -28,5 +28,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             await session.close()
 
 async def init_db():
+    import src.db.models
+    
     async with engine.begin() as conn:
-        await conn.run_sync(lambda sync_conn: Base.metadata.create_all(bind=sync_conn))
+        await conn.run_sync(Base.metadata.create_all)

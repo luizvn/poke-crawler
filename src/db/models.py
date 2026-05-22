@@ -1,8 +1,5 @@
 from sqlalchemy import Column, Integer, String, JSON
-from sqlalchemy.orm import declarative_base
-
-Base = declarative_base()
-
+from src.db.base import Base
 
 class Pokemon(Base):
     __tablename__ = 'pokemon'
@@ -16,7 +13,7 @@ class Pokemon(Base):
     sp_atk = Column(Integer, nullable=False)
     sp_def = Column(Integer, nullable=False)
     speed = Column(Integer, nullable=False)
-    image_path = Column(String, nullable=True)
+    image_path = Column(String, nullable=False)
     types = Column(JSON, nullable=False)
     abilities = Column(JSON, nullable=False)
-    evolutions = Column(JSON, nullable=False)
+    evolution = Column(JSON, nullable=False)

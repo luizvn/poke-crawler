@@ -3,3 +3,5 @@ __pycache__/
 .env
 media/images/
 .idea/
+downloaded_files
+poke-crawler.db
