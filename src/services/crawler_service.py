@@ -4,6 +4,8 @@ import sys
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import List, Tuple
+from sqlalchemy.exc import IntegrityError
+from lxml import html
 
 from src.core.config import settings
 from src.crawler.fetcher import get_browser_session
@@ -11,8 +13,7 @@ from src.crawler.parser import parse_pokemon, extract_image_url, _get_base_name
 from src.schemas.pokemon import PokemonSchema
 from src.db.models import Pokemon
 from src.core.exceptions import DuplicatePokemonError
-from sqlalchemy.exc import IntegrityError
-from lxml import html
+
 
 logger = logging.getLogger(__name__)
 

@@ -2,7 +2,9 @@ import sys
 import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
+
+
 from src.api.routers import pokemon
 from src.db.database import init_db
 from src.core.exceptions import (
@@ -62,4 +64,7 @@ async def poke_crawler_exception_handler(request: Request, exc: PokeCrawlerExcep
         content={"error": "Erro Interno do Crawler", "message": exc.message},
     )
 
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse(url="/docs")
 app.include_router(pokemon.router)
