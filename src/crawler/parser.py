@@ -216,6 +216,7 @@ def _extract_abilities(tree: etree._Element, base_name: str) -> List[Dict[str, A
 def _extract_evolutions(tree: etree._Element, base_name: str) -> Dict[str, List[str]]:
     """Extrai sucessores e antecessores."""
     evo_data = {"predecessors": [], "successors": []}
+
     header = tree.xpath('//*[self::h2 or self::h3][@id="Evolution" or span[@id="Evolution"]]')
     if not header:
         return evo_data
@@ -224,47 +225,73 @@ def _extract_evolutions(tree: etree._Element, base_name: str) -> Dict[str, List[
     if not container:
         return evo_data
 
-    main_tables = container[0].xpath('.//table[contains(@style, "border: 3px solid")]')
-    if not main_tables:
+    family_containers = container[0].xpath(
+        './/*[contains(@style, "border: 3px solid") or contains(@style, "border:3px solid")]')
+
+    if not family_containers:
+        family_containers = [container[0]]
+
+    target_container = family_containers[0]
+
+    if len(family_containers) > 1:
+        base_name_lower = base_name.lower()
+        for fc in family_containers:
+            title_nodes = fc.xpath('preceding-sibling::p[1]//b//text() | ancestor::div[1]/p/b/text()')
+            if title_nodes:
+                title = "".join(title_nodes).strip().lower()
+                if title == base_name_lower:
+                    target_container = fc
+                    break
+
+    evolution_tables = target_container.xpath(
+        './/table[.//small[contains(text(), "Unevolved") or contains(text(), "Evolution") or contains(text(), "Baby")]]')
+
+    if not evolution_tables:
         return evo_data
 
-    target_table = main_tables[0]
-    for table in main_tables:
-        title_nodes = table.xpath('preceding-sibling::p[1]//b//text()')
-        if title_nodes and "".join(title_nodes).strip().lower() == base_name.lower():
-            target_table = table
-            break
-
     stage_map = {}
-    for mt in target_table.xpath('.//table'):
-        stages = mt.xpath('.//small[contains(text(), "Unevolved") or contains(text(), "Evolution") or contains(text(), "Baby")]/text()')
+
+    for table in evolution_tables:
+        stages = table.xpath(
+            './/small[contains(text(), "Unevolved") or contains(text(), "Evolution") or contains(text(), "Baby")]/text()')
         if not stages:
             continue
-        
-        name_node = mt.xpath('.//span[contains(@style, "color:#000") or contains(@style, "color: #000")]/text()')
-        if name_node:
-            p_name = name_node[0].strip()
-            s_name = stages[0].strip()
-            if s_name not in stage_map:
-                stage_map[s_name] = []
-            if p_name not in stage_map[s_name]:
-                stage_map[s_name].append(p_name)
+        name_nodes = table.xpath(
+            './/a/span[contains(@style, "color:#000")]/text() | .//a[not(span) and not(contains(@class, "image"))]/text() | .//span[contains(@style, "color:#000")]/text()')
+        valid_names = [n.strip() for n in name_nodes if n.strip() and n.strip().lower() != base_name.lower()]
+        if valid_names and stages:
+            p_name = valid_names[0]
+        else:
+            self_link = table.xpath('.//a[contains(@class, "selflink")]')
+            if self_link:
+                p_name = base_name
+            else:
+                continue
+
+        s_name = stages[0].strip()
+
+        if s_name not in stage_map:
+            stage_map[s_name] = []
+        if p_name not in stage_map[s_name] and p_name != base_name:
+            stage_map[s_name].append(p_name)
+        elif p_name == base_name and base_name not in stage_map[s_name]:
+            stage_map[s_name].append(p_name)
 
     RANK = {"baby pokémon": 1, "unevolved": 2, "first evolution": 3, "second evolution": 4}
     ordered = sorted(stage_map.keys(), key=lambda k: RANK.get(k.lower(), 99))
-    
+
     idx = -1
     for i, stage in enumerate(ordered):
         if base_name.lower() in [n.lower() for n in stage_map[stage]]:
             idx = i
             break
-    
+
     if idx != -1:
         if idx > 0:
-            evo_data["predecessors"] = stage_map[ordered[idx-1]]
+            evo_data["predecessors"] = [p for p in stage_map[ordered[idx - 1]] if p.lower() != base_name.lower()]
         if idx < len(ordered) - 1:
-            evo_data["successors"] = stage_map[ordered[idx+1]]
-            
+            evo_data["successors"] = [s for s in stage_map[ordered[idx + 1]] if s.lower() != base_name.lower()]
+
     return evo_data
 
 
